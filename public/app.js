@@ -102,7 +102,7 @@ class PlagiarismChecker {
             const formData = new FormData();
             formData.append('file', file);
             
-            const response = await fetch('/upload', {
+            const response = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             });
@@ -110,7 +110,7 @@ class PlagiarismChecker {
             const result = await response.json();
             
             if (response.ok && result.success) {
-                this.currentFileId = result.file_id;
+                this.currentFileId = result.fileId;
                 this.showFileInfo(result);
                 this.updateButtonState();
                 this.hideProgress();
@@ -119,6 +119,7 @@ class PlagiarismChecker {
             }
         } catch (error) {
             this.showError('File upload failed: ' + error.message);
+            this.hideProgress();
         }
     }
     
@@ -135,12 +136,12 @@ class PlagiarismChecker {
             
             if (this.currentFileId) {
                 // Check file
-                endpoint = '/check_plagiarism';
-                data = { file_id: this.currentFileId };
+                endpoint = '/api/check-plagiarism';
+                data = { fileId: this.currentFileId };
                 this.showProgress('Analyzing document for plagiarism...');
             } else {
                 // Check text
-                endpoint = '/check_text';
+                endpoint = '/api/check-text';
                 data = { text: this.textInput.value.trim() };
                 this.showProgress('Analyzing text for plagiarism...');
             }
@@ -196,7 +197,7 @@ class PlagiarismChecker {
         }
         
         const interval = setInterval(() => {
-            progress += Math.random() * 8 + 2; // Faster progress
+            progress += Math.random() * 8 + 2;
             if (progress > 95) progress = 95;
             
             progressBar.style.width = progress + '%';
@@ -216,7 +217,7 @@ class PlagiarismChecker {
             progressBar.style.width = '100%';
             document.getElementById('progressPercentage').textContent = '100% Complete';
             progressText.textContent = 'Finalizing results...';
-        }, 8000); // Shorter time for faster processing
+        }, 8000);
     }
     
     showFileInfo(fileData) {
@@ -225,10 +226,10 @@ class PlagiarismChecker {
             <div class="row">
                 <div class="col-md-6">
                     <strong>Filename:</strong> ${fileData.filename}<br>
-                    <strong>Words:</strong> ${fileData.word_count.toLocaleString()}
+                    <strong>Words:</strong> ${fileData.wordCount.toLocaleString()}
                 </div>
                 <div class="col-md-6">
-                    <strong>Characters:</strong> ${fileData.character_count.toLocaleString()}<br>
+                    <strong>Characters:</strong> ${fileData.characterCount.toLocaleString()}<br>
                     <small class="text-muted">Ready for analysis</small>
                 </div>
             </div>

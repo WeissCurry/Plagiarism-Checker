@@ -6,7 +6,7 @@
     <title>Advanced Plagiarism Checker</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link href="/styles.css" rel="stylesheet">
 </head>
 <body>
     <div class="container-fluid">
@@ -42,7 +42,7 @@
                                     <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
                                     <h6>Drag & Drop Your Document Here</h6>
                                     <p class="text-muted">or click to browse files</p>
-                                    <small class="text-muted">Supported formats: TXT, PDF, DOCX (Max: 50MB)</small>
+                                    <small class="text-muted">Supported formats: TXT, PDF, DOCX (Max: 10MB)</small>
                                 </div>
                                 <input type="file" id="fileInput" accept=".txt,.pdf,.docx" hidden>
                             </div>
@@ -215,10 +215,10 @@
 
     <!-- Footer -->
     <footer class="bg-dark text-white text-center py-3 mt-5">
-        <p class="mb-0">&copy; 2025 Advanced Plagiarism Checker. Built with Flask & Advanced AI.</p>
+        <p class="mb-0">&copy; 2025 Advanced Plagiarism Checker. Built with Node.js & Advanced AI.</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="/app.js"></script>
 </body>
 </html>
