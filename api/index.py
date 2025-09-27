@@ -1,13 +1,17 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify
 import os
+import sys
 import hashlib
 from werkzeug.utils import secure_filename
-from plagiarism_checker import PlagiarismChecker
-from text_extractor import TextExtractor
-import json
 from datetime import datetime
 
-app = Flask(__name__)
+# Add parent directory to path to import our modules
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from plagiarism_checker import PlagiarismChecker
+from text_extractor import TextExtractor
+
+app = Flask(__name__, template_folder='../templates', static_folder='../static')
 app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', 'dev-secret-key')
 app.config['UPLOAD_FOLDER'] = '/tmp/uploads'  # Use /tmp for serverless
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max for serverless
@@ -129,8 +133,6 @@ def check_text():
 def health():
     return jsonify({'status': 'healthy', 'service': 'plagiarism-checker'})
 
-# For Vercel deployment - remove the problematic app.run()
-# The Flask app will be imported and run by Vercel's Python runtime
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# For Vercel serverless deployment
+def handler(request):
+    return app(request.environ, request.start_response)
