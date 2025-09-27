@@ -128,6 +128,3 @@ def check_text():
 @app.route('/health')
 def health():
     return jsonify({'status': 'healthy', 'service': 'plagiarism-checker'})
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
