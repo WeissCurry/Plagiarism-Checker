@@ -1,3 +1,9 @@
+>[!IMPORTANT]
+> The site is currently facing functional issues. If it is not working, it will be fixed soon.  
+> In the meantime, if you need a [Turnitin report PDF](https://www.turnitin.com/) for anything, you can reach out to me at **sanjaychoudharycu@gmail.com**.  
+> I will share the report PDF whenever I get free and see your request. Please wait patiently.  
+> ⭐ Don’t forget to star the repo and support the work!
+
 # **Turnitin Free Plagiarism Checker**
 
 A lightweight, user-friendly plagiarism checker for those who may not have access to Turnitin. Designed to help users quickly identify potential plagiarism, this project is entirely free and open-source. It aims to assist students, educators, and professionals in ensuring content integrity.
