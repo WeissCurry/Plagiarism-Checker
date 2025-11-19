@@ -1,6 +1,7 @@
 services:
   - type: web
-    name: plagiarism-checker
+    name: plagiarism-checker-backend
+    rootDir: server
     env: node
     buildCommand: npm install
     startCommand: npm start
@@ -8,3 +9,9 @@ services:
       - key: NODE_ENV
         value: production
     healthCheckPath: /health
+
+staticSites:
+  - name: plagiarism-checker-client
+    rootDir: client
+    buildCommand: npm install && npm run build
+    publishDir: dist
