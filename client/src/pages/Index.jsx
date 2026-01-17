@@ -1,20 +1,93 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, FileSearch, AlertCircle } from "lucide-react";
+import { Loader2, FileSearch, AlertCircle, Upload, FileText } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { checkTextSchema } from "../../../shared/schema";
+import * as pdfjsLib from "pdfjs-dist";
 
 const Index = () => {
   const [text, setText] = useState("");
   const [isChecking, setIsChecking] = useState(false);
+  const [isParsingFile, setIsParsingFile] = useState(false);
+  const [checkProgress, setCheckProgress] = useState(0);
   const [result, setResult] = useState(null);
-  const {
-    toast
-  } = useToast();
+  const fileInputRef = useRef(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
+  }, []);
+
+  const extractTextFromPDF = async (file) => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item) => item.str).join(" ");
+        fullText += pageText + "\n\n";
+      }
+      return fullText;
+    } catch (error) {
+      console.error("PDF Parsing Error:", error);
+      throw new Error("Failed to parse PDF file. Make sure it contains selectable text.");
+    }
+  };
+
+  // --- HANDLE FILE UPLOAD ---
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsParsingFile(true);
+    try {
+      let content = "";
+      if (file.type === "application/pdf") {
+        content = await extractTextFromPDF(file);
+      } else {
+        content = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = (e) => reject(e);
+          reader.readAsText(file);
+        });
+      }
+
+      if (!content.trim()) {
+        throw new Error("The file appears to be empty or contains no readable text.");
+      }
+      setText(content);
+      toast({
+        title: "File Uploaded",
+        description: `Successfully loaded content from ${file.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error Reading File",
+        description: error.message || "Could not read the file",
+        variant: "destructive"
+      });
+    } finally {
+      setIsParsingFile(false);
+      event.target.value = null;
+    }
+  };
+
   const handleCheck = async () => {
     if (!text.trim()) {
       toast({
@@ -25,7 +98,6 @@ const Index = () => {
       return;
     }
 
-    // Validate using Zod schema
     const validation = checkTextSchema.safeParse({ text });
     if (!validation.success) {
       const errorMessage = validation.error.errors[0]?.message || "Validation failed";
@@ -39,6 +111,15 @@ const Index = () => {
 
     setIsChecking(true);
     setResult(null);
+    setCheckProgress(0); // Reset progress
+
+    const progressInterval = setInterval(() => {
+      setCheckProgress((prev) => {
+        if (prev >= 97) return prev;
+        return prev + Math.random() * 2;
+      });
+    }, 2000);
+
     try {
       const response = await fetch('/api/plagiarism-check', {
         method: 'POST',
@@ -49,10 +130,20 @@ const Index = () => {
           text
         })
       });
+
+      clearInterval(progressInterval);
+
       if (!response.ok) {
         throw new Error('Failed to check plagiarism');
       }
+
       const data = await response.json();
+
+      setCheckProgress(100);
+
+      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 500));
+      
       setResult(data);
       toast({
         title: "Check Complete",
@@ -66,15 +157,19 @@ const Index = () => {
         variant: "destructive"
       });
     } finally {
+      clearInterval(progressInterval);
       setIsChecking(false);
     }
   };
+
   const getScoreColor = score => {
     if (score < 20) return "text-green-600 dark:text-green-400";
     if (score < 50) return "text-yellow-600 dark:text-yellow-400";
     return "text-red-600 dark:text-red-400";
   };
-  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
@@ -93,11 +188,40 @@ const Index = () => {
             <CardHeader>
               <CardTitle>Enter Your Text</CardTitle>
               <CardDescription>
-                Paste your text below to check for plagiarism against internet sources
+                Paste your text below or upload a file (PDF or Text) to check for plagiarism
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Textarea data-testid="input-text" placeholder="Paste your text here (minimum 100 characters)..." value={text} onChange={e => setText(e.target.value)} className="min-h-[200px] text-base" />
+              <div className="flex justify-end">
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".pdf,.txt,.md,.js,.jsx,.ts,.tsx,.json" 
+                  className="hidden" 
+                />
+                <Button 
+                  variant="outline" 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isChecking || isParsingFile}
+                >
+                  {isParsingFile ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  {isParsingFile ? "Reading File..." : "Upload File (PDF)"}
+                </Button>
+              </div>
+
+              <Textarea 
+                data-testid="input-text" 
+                placeholder="Paste your text here or upload a file (minimum 100 characters)..." 
+                value={text} 
+                onChange={e => setText(e.target.value)} 
+                className="min-h-[200px] text-base" 
+              />
+              
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <p className="text-sm text-muted-foreground" data-testid="text-character-count">
                   {text.length} characters
@@ -108,12 +232,19 @@ const Index = () => {
                 </Button>
               </div>
 
-              {isChecking && <Alert data-testid="alert-checking">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    This may take 30-60 seconds as we search the web and compare your text...
-                  </AlertDescription>
-                </Alert>}
+              {isChecking && (
+                <Alert data-testid="alert-checking" className="bg-primary/5 border-primary/20">
+                  <AlertCircle className="h-4 w-4 text-primary" />
+                  <div className="w-full pl-2">
+                    <AlertDescription className="mb-3 font-medium flex justify-between">
+                      <span>Analyzing text and comparing internet sources...</span>
+                      <span>{Math.round(checkProgress)}%</span>
+                    </AlertDescription>
+                    <Progress value={checkProgress} className="h-2 w-full transition-all duration-300" />
+                  </div>
+                </Alert>
+              )}
+
             </CardContent>
           </Card>
 
@@ -186,6 +317,7 @@ const Index = () => {
             </div>}
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 export default Index;
